@@ -574,7 +574,12 @@ function renderCaps(){
     }else{
       (function(c){d.addEventListener('click',function(){
         window.speechSynthesis&&window.speechSynthesis.cancel();
-        setTimeout(function(){irCap(c);},200);
+        // Si estamos en iframe general (sin parametro cap), navegar a la seccion de Moodle
+        if(!getParamCap()){
+          window.top.location.href=c.url_todo;
+        }else{
+          setTimeout(function(){irCap(c);},200);
+        }
       });})(cap);
     }
     lt.appendChild(d);
