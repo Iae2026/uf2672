@@ -1,0 +1,983 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UF2672 Agente</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Open Sans',sans-serif;background:#0d1f3c;color:#d0daea;padding:16px;}
+@keyframes ufO{0%,100%{transform:scaleY(.4);opacity:.5}50%{transform:scaleY(1);opacity:1}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+@keyframes confeti-caer{0%{transform:translateY(-20px) rotate(0deg);opacity:1;}100%{transform:translateY(100vh) rotate(720deg);opacity:0;}}
+.confeti-pieza{position:fixed;top:-20px;width:10px;height:10px;border-radius:2px;animation:confeti-caer 3s ease-in forwards;z-index:9999;pointer-events:none;}
+.uf-screen{display:none;}
+.uf-screen.activo{display:flex;animation:fadeIn .3s ease;}
+.uf-row{display:flex;flex-wrap:wrap;gap:16px;width:100%;}
+.uf-col-video{flex:0 0 auto;width:clamp(130px,25%,180px);display:flex;flex-direction:column;align-items:center;gap:10px;}
+.uf-col-content{flex:1 1 200px;display:flex;flex-direction:column;gap:10px;min-width:180px;}
+.uf-video-wrap{position:relative;width:100%;border-radius:12px;overflow:hidden;border:1px solid rgba(58,114,196,0.35);background:#111e35;aspect-ratio:3/4;}
+video{width:100%;display:block;object-fit:cover;object-position:top center;}
+.uf-chip{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);background:rgba(10,20,40,0.9);border:1px solid #c9a84c;border-radius:20px;padding:4px 12px;font-size:10px;font-weight:700;letter-spacing:2px;color:#c9a84c;white-space:nowrap;}
+.uf-voz{display:none;align-items:center;gap:5px;padding:4px 10px;background:rgba(26,58,107,0.4);border:1px solid rgba(58,114,196,0.25);border-radius:20px;}
+.uf-ondas{display:flex;align-items:center;gap:2px;height:12px;}
+.uf-onda{width:2px;background:#c9a84c;border-radius:2px;animation:ufO .7s ease-in-out infinite;}
+.uf-progreso-box{width:100%;background:rgba(26,58,107,0.4);border:1px solid rgba(58,114,196,0.25);border-radius:8px;padding:10px;}
+.uf-progreso-label{font-size:10px;font-weight:700;letter-spacing:1px;color:#c9a84c;text-transform:uppercase;margin-bottom:6px;}
+.uf-progreso-track{width:100%;height:6px;background:rgba(58,114,196,0.2);border-radius:3px;overflow:hidden;margin-bottom:4px;}
+.uf-progreso-fill{height:100%;width:0%;background:linear-gradient(90deg,#2b5ea7,#c9a84c);border-radius:3px;transition:width .8s;}
+.uf-progreso-pct{font-size:11px;color:#8a9ab5;text-align:right;}
+.uf-dato{width:100%;background:rgba(26,58,107,0.3);border:2px solid #c9a84c;border-radius:8px;padding:10px;}
+.uf-dato-label{font-size:10px;font-weight:700;letter-spacing:1px;color:#c9a84c;text-transform:uppercase;margin-bottom:5px;}
+.uf-dato-texto{font-size:12px;color:#8a9ab5;line-height:1.5;}
+.uf-msg{background:rgba(26,58,107,0.35);border:1px solid rgba(58,114,196,0.25);border-top:2px solid rgba(58,114,196,0.5);border-radius:10px;padding:14px;font-size:13px;line-height:1.6;}
+.uf-panel{background:rgba(26,58,107,0.3);border:1px solid rgba(58,114,196,0.25);border-radius:10px;padding:14px;}
+.uf-panel-titulo{font-size:14px;font-weight:700;color:#fff;margin-bottom:6px;}
+.uf-panel-desc{font-size:12px;color:#8a9ab5;line-height:1.6;margin-bottom:12px;}
+.uf-btns{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;}
+.uf-btn-azul{flex:1;min-width:100px;padding:9px 8px;background:#1a3a6b;border:1px solid #c9a84c;border-radius:6px;font-size:11px;font-weight:700;color:#fff;text-transform:uppercase;text-decoration:none;text-align:center;cursor:pointer;}
+.uf-btn-gris{flex:1;min-width:100px;padding:9px 8px;background:rgba(26,58,107,0.5);border:1px solid rgba(58,114,196,0.4);border-radius:6px;font-size:11px;font-weight:700;color:#8a9ab5;text-transform:uppercase;text-decoration:none;text-align:center;cursor:pointer;}
+.uf-btn-verde{flex:1;min-width:100px;padding:9px 8px;background:rgba(0,100,60,0.3);border:1px solid rgba(0,200,100,0.3);border-radius:6px;font-size:11px;font-weight:700;color:#4caf7d;cursor:pointer;text-transform:uppercase;}
+.uf-btn-siguiente{display:none;width:100%;padding:10px;background:#1a3a6b;border:1px solid #c9a84c;border-radius:6px;font-size:12px;font-weight:700;color:#fff;text-transform:uppercase;text-align:center;cursor:pointer;margin-top:8px;}
+.uf-item{border-radius:8px;padding:12px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:13px;margin-bottom:6px;transition:transform .15s,box-shadow .15s;}
+.uf-item:not(.uf-item-bloq):hover{transform:translateX(3px);box-shadow:0 2px 12px rgba(58,114,196,0.2);}
+.uf-item-bloq{cursor:not-allowed;}
+.uf-cap-header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px;}
+.uf-cap-num{font-size:11px;font-weight:700;letter-spacing:3px;color:#c9a84c;text-transform:uppercase;}
+.uf-cap-nombre{font-size:13px;font-weight:700;color:#fff;margin-top:2px;}
+.uf-nombre-wrap{display:flex;flex-direction:column;align-items:center;gap:14px;max-width:420px;margin:0 auto;width:100%;}
+.uf-titulo-curso{font-size:11px;font-weight:700;letter-spacing:3px;color:#c9a84c;text-transform:uppercase;text-align:center;}
+.uf-subtitulo{font-size:18px;font-weight:700;color:#fff;text-align:center;line-height:1.4;}
+.uf-sep{width:50px;height:2px;background:#c9a84c;}
+.uf-card{width:100%;background:rgba(26,58,107,0.5);border:1px solid rgba(58,114,196,0.35);border-radius:10px;padding:20px;}
+.uf-label{display:block;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px;}
+.uf-input{width:100%;background:rgba(10,20,40,0.8);border:1px solid rgba(58,114,196,0.4);border-radius:6px;padding:11px 13px;font-size:15px;color:#fff;outline:none;margin-bottom:14px;}
+.uf-btn-comenzar{width:100%;padding:12px;background:#1a3a6b;border:1px solid #c9a84c;border-radius:6px;font-size:13px;font-weight:700;letter-spacing:2px;color:#fff;cursor:pointer;text-transform:uppercase;}
+.uf-btn-cambiar{background:rgba(26,58,107,0.4);border:1px solid rgba(58,114,196,0.4);border-radius:6px;padding:8px 16px;font-size:12px;font-weight:600;color:#8a9ab5;cursor:pointer;width:100%;}
+#uf-pregunta{display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#0d1f3c;border:2px solid #c9a84c;border-radius:14px;padding:24px;z-index:9998;width:min(320px,90vw);box-shadow:0 8px 32px rgba(0,0,0,0.5);}
+.preg-texto{font-size:14px;color:#d0daea;line-height:1.6;margin-bottom:16px;text-align:center;}
+.preg-btns{display:flex;gap:10px;}
+.preg-si{flex:1;padding:10px;background:rgba(0,100,60,0.3);border:1px solid rgba(0,200,100,0.4);border-radius:8px;color:#4caf7d;font-weight:700;cursor:pointer;font-size:13px;}
+.preg-no{flex:1;padding:10px;background:rgba(107,26,26,0.3);border:1px solid rgba(196,58,58,0.4);border-radius:8px;color:#cf6679;font-weight:700;cursor:pointer;font-size:13px;}
+#uf-inactivo{display:none;position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:rgba(13,31,60,0.95);border:1px solid rgba(201,168,76,0.4);border-radius:10px;padding:10px 16px;font-size:12px;color:#8a9ab5;z-index:9997;text-align:center;max-width:280px;}
+.uf-acts-lista a{display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(26,58,107,0.4);border:1px solid rgba(58,114,196,0.3);border-radius:6px;font-size:12px;color:#d0daea;text-decoration:none;margin-bottom:6px;}
+.uf-acts-lista a:hover{background:rgba(43,95,167,0.4);}
+.uf-cargando{text-align:center;padding:20px;color:#8a9ab5;font-size:13px;}
+</style>
+</head>
+<body>
+
+<div id="uf-pregunta">
+  <div class="preg-texto" id="preg-texto"></div>
+  <div class="preg-btns">
+    <button class="preg-si" id="preg-si">Si</button>
+    <button class="preg-no" id="preg-no">No</button>
+  </div>
+</div>
+<div id="uf-inactivo"></div>
+
+<!-- PANTALLA NOMBRE -->
+<div id="p-nombre" class="uf-screen activo" style="flex-direction:column;align-items:center;">
+  <div class="uf-nombre-wrap">
+    <div class="uf-titulo-curso">MF0080_2 - Vigilancia y Proteccion</div>
+    <div class="uf-subtitulo">UF2672 - Aspectos Juridicos<br>en el Ejercicio Profesional</div>
+    <div class="uf-sep"></div>
+    <p style="font-size:13px;color:#8a9ab5;text-align:center;line-height:1.6;margin:0;">Personaliza tu experiencia antes de comenzar.</p>
+    <div class="uf-card">
+      <label class="uf-label" style="color:#e8c96a;">Tu nombre</label>
+      <input id="inp-al" class="uf-input" type="text" placeholder="Escribe tu nombre..." maxlength="30" autocomplete="off"/>
+      <label class="uf-label" style="color:#c9a84c;">Nombre de tu agente</label>
+      <input id="inp-ag" class="uf-input" type="text" placeholder="Ej: Delta, Rex, Ares..." maxlength="20" autocomplete="off"/>
+      <button id="btn-comenzar" class="uf-btn-comenzar">Comenzar</button>
+    </div>
+  </div>
+</div>
+
+<!-- PANTALLA INICIO -->
+<div id="p-inicio" class="uf-screen" style="flex-direction:column;gap:16px;">
+  <div class="uf-row">
+    <div class="uf-col-video">
+      <div class="uf-video-wrap">
+        <video id="vid-inicio-a" autoplay loop muted playsinline src="./WEBM/Saludo.webm" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;object-position:top center;transition:opacity 1s ease;opacity:1;"></video>
+        <video id="vid-inicio-b" autoplay loop muted playsinline src="" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;object-position:top center;transition:opacity 1s ease;opacity:0;"></video>
+        <div style="position:relative;padding-top:133%;"></div>
+        <div class="uf-chip" id="chip-inicio">AGENTE</div>
+      </div>
+      <div class="uf-voz" id="voz-inicio">
+        <div class="uf-ondas"><div class="uf-onda" style="height:3px;"></div><div class="uf-onda" style="height:7px;animation-delay:.1s"></div><div class="uf-onda" style="height:12px;animation-delay:.2s"></div><div class="uf-onda" style="height:7px;animation-delay:.3s"></div><div class="uf-onda" style="height:3px;animation-delay:.4s"></div></div>
+        <span style="font-size:10px;color:#8a9ab5;letter-spacing:1px;">Transmitiendo</span>
+      </div>
+      <div class="uf-progreso-box">
+        <div class="uf-progreso-label">Progreso total</div>
+        <div class="uf-progreso-track"><div class="uf-progreso-fill" id="pf-inicio"></div></div>
+        <div class="uf-progreso-pct"><span id="pp-inicio">0</span>% completado</div>
+      </div>
+      <div class="uf-dato">
+        <div class="uf-dato-label">Dato juridico</div>
+        <div class="uf-dato-texto" id="dato-inicio"></div>
+      </div>
+    </div>
+    <div class="uf-col-content">
+      <div class="uf-msg" id="msg-inicio" style="font-size:15px;"></div>
+      <div id="lista-caps"></div>
+      <button class="uf-btn-cambiar" id="btn-cambiar">Cambiar nombre</button>
+    </div>
+  </div>
+</div>
+
+<!-- PANTALLA CAPITULO (dinamica) -->
+<div id="p-cap" class="uf-screen" style="flex-direction:column;gap:16px;">
+  <div class="uf-row">
+    <div class="uf-col-video">
+      <div class="uf-video-wrap">
+        <video id="vid-cap-a" autoplay loop muted playsinline src="./WEBM/Hablando1.webm" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;object-position:top center;transition:opacity 1s ease;opacity:1;"></video>
+        <video id="vid-cap-b" autoplay loop muted playsinline src="" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;object-position:top center;transition:opacity 1s ease;opacity:0;"></video>
+        <div style="position:relative;padding-top:133%;"></div>
+        <div class="uf-chip" id="chip-cap">AGENTE</div>
+      </div>
+      <div class="uf-voz" id="voz-cap">
+        <div class="uf-ondas"><div class="uf-onda" style="height:3px;"></div><div class="uf-onda" style="height:7px;animation-delay:.1s"></div><div class="uf-onda" style="height:12px;animation-delay:.2s"></div><div class="uf-onda" style="height:7px;animation-delay:.3s"></div><div class="uf-onda" style="height:3px;animation-delay:.4s"></div></div>
+        <span style="font-size:10px;color:#8a9ab5;letter-spacing:1px;">Transmitiendo</span>
+      </div>
+      <div class="uf-progreso-box">
+        <div class="uf-progreso-label" id="cap-prog-label">Capitulo</div>
+        <div class="uf-progreso-track"><div class="uf-progreso-fill" id="pf-cap"></div></div>
+        <div class="uf-progreso-pct" id="pp-cap">0% completado</div>
+      </div>
+    </div>
+    <div class="uf-col-content">
+      <div class="uf-cap-header">
+        <div><div class="uf-cap-num" id="cap-num-label"></div><div class="uf-cap-nombre" id="cap-nombre-label"></div></div>
+        <span id="btn-volver-cap" style="background:rgba(26,58,107,0.4);border:1px solid rgba(58,114,196,0.4);border-radius:6px;padding:6px 14px;font-size:12px;font-weight:600;color:#8a9ab5;cursor:pointer;">Volver</span>
+      </div>
+      <div class="uf-msg" id="msg-cap" style="font-size:15px;"></div>
+      <div id="lista-modulos"></div>
+      <div class="uf-panel" id="panel-modulo" style="display:none;">
+        <div class="uf-panel-titulo" id="modulo-titulo"></div>
+        <div class="uf-panel-desc" id="modulo-desc"></div>
+        <div class="uf-btns" id="modulo-btns"></div>
+        <div id="modulo-acts"></div>
+        <button class="uf-btn-siguiente" id="btn-sig-cap">Siguiente capitulo</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+var WORKER_URL = 'https://snowy-tooth-2818.anqizhengjin1.workers.dev';
+var COURSE_ID = 4;
+
+// Datos del curso cargados desde Moodle
+var CURSO = {
+  caps: [],      // [{seccion, nombre, url_todo, modulos:[{id,nombre,tipo,url}]}]
+  cargado: false
+};
+
+var ANIMS = {
+  saludo:    {w:'./WEBM/Saludo.webm',    d:4},
+  senalar:   {w:'./WEBM/Senalar.webm',   d:5},
+  hablando1: {w:'./WEBM/Hablando1.webm', d:6},
+  hablando2: {w:'./WEBM/Hablando2.webm', d:6},
+  idle:      {w:'./WEBM/Idle.webm',      d:5},
+  walkie:    {w:'./WEBM/Walkie.webm',    d:5},
+  brazos:    {w:'./WEBM/BrazosEnJarra.webm',d:5},
+  perfecto:  {w:'./WEBM/Perfecto.webm',  d:4},
+  stop:      {w:'./WEBM/Stop.webm',      d:3},
+  pregunta:  {w:'./WEBM/Pregunta.webm',  d:4},
+  impaciente:{w:'./WEBM/Impaciente.webm',d:4}
+};
+var GRUPOS = {
+  idle:    ['idle','walkie','brazos','pregunta'],
+  hablando:['hablando1','hablando2','senalar']
+};
+var CONSEJOS = [
+  'La Constitucion Espanola fue aprobada el 6 de diciembre de 1978.',
+  'El art. 17 CE garantiza el derecho a la libertad y seguridad.',
+  'La Ley 5/2014 regula las funciones del vigilante de seguridad.',
+  'El principio de proporcionalidad es clave en toda actuacion de seguridad.',
+  'El detenido tiene derecho a ser informado de sus derechos inmediatamente.',
+  'El derecho comunitario tiene primacia sobre el derecho nacional.',
+  'La responsabilidad penal puede ser por accion u omision.',
+  'El atestado policial recoge todas las actuaciones en el lugar de los hechos.'
+];
+var FRASES_SALUDO = [
+  function(al,ag){return 'Hola '+al+'. Soy '+ag+', tu agente. Selecciona un capitulo para empezar.';},
+  function(al,ag){return 'Bienvenido de nuevo, '+al+'. Soy '+ag+'. Por donde seguimos?';},
+  function(al,ag){return al+', aqui '+ag+'. Elige el capitulo que toca.';},
+  function(al,ag){return 'Agente '+ag+' en linea. '+al+', selecciona tu proximo objetivo.';}
+];
+var FRASES_ENTRAR = [
+  function(al,t){return al+', entramos en '+t+'. Estudia el material y marca como completado.';},
+  function(al,t){return 'Bienvenido a '+t+', '+al+'. Accede al contenido y trabaja a tu ritmo.';},
+  function(al,t){return al+', '+t+' te espera. Pulsa Ver contenido para comenzar.';}
+];
+var FRASES_COMPLETAR = [
+  function(al,t){return 'Enhorabuena, '+al+'. Has completado '+t+'. Pulsa Siguiente para continuar.';},
+  function(al,t){return al+', '+t+' superado. Eso es dedicacion. Siguiente capitulo.';},
+  function(al,t){return 'Bien hecho, '+al+'! '+t+' en el registro. Seguimos.';}
+];
+var FRASES_BLOQUEADO = [
+  function(al){return al+', ese capitulo esta bloqueado. Completa el anterior primero.';},
+  function(al){return 'Acceso denegado, '+al+'. Termina el capitulo anterior.';},
+  function(al){return al+', paso a paso. Primero completa lo pendiente.';}
+];
+var FRASES_INACTIVO = [
+  function(ag){return ag+' esperando. Sigues ahi? Pulsa un capitulo para continuar.';},
+  function(ag){return 'Llevas un rato parado. '+ag+' esta listo cuando quieras.';},
+  function(ag){return ag+' en espera. El curso no se termina solo. Vamos!';}
+];
+
+function r(arr){return arr[Math.floor(Math.random()*arr.length)];}
+function gAl(){return localStorage.getItem('uf_al')||'Alumno';}
+function gAg(){return localStorage.getItem('uf_ag')||'Agente';}
+function gCo(){try{return JSON.parse(localStorage.getItem('uf_co')||'[]');}catch(e){return[];}}
+function sCo(a){try{localStorage.setItem('uf_co',JSON.stringify(a));}catch(e){}}
+function isC(id){return gCo().indexOf(id)!==-1;}
+function mC(id){var a=gCo();if(a.indexOf(id)===-1){a.push(id);sCo(a);}}
+function pctTotal(){var n=0,tot=CURSO.caps.length,co=gCo();CURSO.caps.forEach(function(c){if(co.indexOf('cap_'+c.seccion)!==-1)n++;});return tot>0?Math.round(n/tot*100):0;}
+
+// Motor de video dual crossfade
+var capaActiva={};var rotTimers={};var rotIndex={};
+
+function setAnim(vidId,animKey,sinFade){
+  var anim=ANIMS[animKey];if(!anim)return;
+  var activa=capaActiva[vidId]||'a';var sig=activa==='a'?'b':'a';
+  var vA=document.getElementById(vidId+'-'+activa);
+  var vB=document.getElementById(vidId+'-'+sig);
+  if(!vA||!vB)return;
+  var FADE=sinFade?0:800;
+  vB.src=anim.w;vB.loop=true;vB.muted=true;vB.load();
+  var listo=false;
+  function fazer(){
+    if(listo)return;listo=true;
+    vB.playbackRate=0.5;
+    vB.play().catch(function(){});
+    if(!sinFade){
+      vB.style.transition='opacity '+(FADE/1000)+'s ease';
+      vA.style.transition='opacity '+(FADE/1000)+'s ease';
+    }
+    vB.style.opacity='1';vA.style.opacity='0';
+    capaActiva[vidId]=sig;
+    // NO limpiar src de vA — mantenerla cargada como fallback
+    setTimeout(function(){
+      vA.pause();
+    },FADE+300);
+  }
+  if(sinFade){fazer();}
+  else{
+    vB.oncanplay=function(){vB.oncanplay=null;fazer();};
+    setTimeout(function(){if(!listo)fazer();},1500);
+  }
+}
+
+function iniciarRotacion(vidId,grupo,primerAnim,base){
+  if(rotTimers[vidId])clearTimeout(rotTimers[vidId]);
+  rotIndex[vidId]=0;capaActiva[vidId]='a';
+  var lista=GRUPOS[grupo]||GRUPOS.idle;
+  var vA=document.getElementById(vidId+'-a');
+  if(vA){vA.src=ANIMS[primerAnim||lista[0]].w;vA.style.opacity='1';vA.playbackRate=0.5;vA.load();vA.play().catch(function(){});}
+  var vB=document.getElementById(vidId+'-b');if(vB){vB.style.opacity='0';vB.src='';}
+  var ms=base||18000;
+  function sig(){
+    rotIndex[vidId]=(rotIndex[vidId]+1)%lista.length;
+    setAnim(vidId,lista[rotIndex[vidId]]);
+    rotTimers[vidId]=setTimeout(sig,ms+Math.random()*7000);
+  }
+  rotTimers[vidId]=setTimeout(sig,ms+Math.random()*6000);
+}
+
+function pararRotacion(vidId){if(rotTimers[vidId]){clearTimeout(rotTimers[vidId]);rotTimers[vidId]=null;}}
+
+function animPuntual(vidId,animKey,grupo,dur){
+  pararRotacion(vidId);
+  var anim=ANIMS[animKey];if(!anim)return;
+  var activa=capaActiva[vidId]||'a';var sig=activa==='a'?'b':'a';
+  var vA=document.getElementById(vidId+'-'+activa);
+  var vB=document.getElementById(vidId+'-'+sig);
+  if(!vB)return;
+  vB.src=anim.w;vB.loop=false;vB.muted=true;vB.load();
+  var listo=false;
+  function mostrar(){
+    if(listo)return;listo=true;
+    vB.playbackRate=0.5;vB.play().catch(function(){});
+    vB.style.transition='opacity 0.7s ease';
+    if(vA){vA.style.transition='opacity 0.7s ease';vA.style.opacity='0';}
+    vB.style.opacity='1';capaActiva[vidId]=sig;
+    vB.onended=function(){
+      vB.onended=null;vB.loop=true;
+      iniciarRotacion(vidId,grupo,null,18000);
+    };
+    setTimeout(function(){
+      if(vB.onended){vB.onended=null;vB.loop=true;iniciarRotacion(vidId,grupo,null,18000);}
+    },((dur||anim.d||4)*2000)+1000);
+  }
+  vB.oncanplay=function(){vB.oncanplay=null;mostrar();};
+  setTimeout(function(){if(!listo)mostrar();},1500);
+}
+
+var pantActual='p-nombre';
+function ir(id){
+  document.getElementById(pantActual).classList.remove('activo');
+  pararRotacion('vid-inicio');pararRotacion('vid-cap');
+  document.getElementById(id).classList.add('activo');
+  pantActual=id;window.scrollTo(0,0);
+}
+
+function setChips(){
+  var ag=gAg().toUpperCase();
+  ['inicio','cap'].forEach(function(id){var el=document.getElementById('chip-'+id);if(el)el.textContent=ag;});
+}
+
+if(window.speechSynthesis){window.speechSynthesis.getVoices();window.speechSynthesis.addEventListener('voiceschanged',function(){});}
+
+function speak(t,vozId,cb){
+  if(!window.speechSynthesis){if(cb)cb();return;}
+  window.speechSynthesis.cancel();
+  var u=new SpeechSynthesisUtterance(t);u.lang='es-ES';u.rate=0.92;
+  var vs=window.speechSynthesis.getVoices();
+  var v=vs.find(function(x){return x.lang==='es-ES'&&x.name.toLowerCase().indexOf('google')!==-1;})||vs.find(function(x){return x.lang.indexOf('es')===0;});
+  if(v)u.voice=v;
+  var vb=document.getElementById(vozId);
+  u.onstart=function(){if(vb)vb.style.display='flex';};
+  u.onend=u.onerror=function(){if(vb)vb.style.display='none';if(cb)cb();};
+  window.speechSynthesis.speak(u);
+}
+
+function lanzarConfeti(){
+  var colores=['#c9a84c','#2b5ea7','#4caf7d','#fff','#e8c96a'];
+  for(var i=0;i<50;i++){(function(i){setTimeout(function(){
+    var p=document.createElement('div');p.className='confeti-pieza';
+    p.style.left=Math.random()*100+'vw';p.style.background=colores[Math.floor(Math.random()*colores.length)];
+    p.style.width=(Math.random()*8+6)+'px';p.style.height=(Math.random()*8+6)+'px';
+    p.style.animationDuration=(Math.random()*2+2)+'s';
+    document.body.appendChild(p);setTimeout(function(){p.remove();},4000);
+  },i*40);})(i);}
+}
+
+// Preguntas por seccion
+var PREGUNTAS={
+  1:[
+    {q:'¿Sabes cuántos artículos tiene la Constitución Española?',si:'Son 169 artículos, aprobados en 1978. ¡Bien!',no:'Son 169 artículos. La CE fue aprobada el 6 de diciembre de 1978.'},
+    {q:'¿Conoces la diferencia entre derecho público y privado?',si:'Correcto. El público regula relaciones con el Estado; el privado entre particulares.',no:'El derecho público regula ciudadanos y Estado. El privado, entre particulares.'},
+    {q:'¿Sabes qué es el principio de jerarquía normativa?',si:'Muy bien. La Constitución está por encima de todas las normas.',no:'Es el orden de prevalencia: Constitución, leyes orgánicas, leyes ordinarias y reglamentos.'},
+    {q:'¿Sabes en qué año entró en vigor la Ley de Seguridad Privada?',si:'Correcto, en 2014. La Ley 5/2014.',no:'La Ley 5/2014 de Seguridad Privada entró en vigor en 2014.'},
+    {q:'¿Conoces qué artículo de la CE protege la inviolabilidad del domicilio?',si:'Exacto, el artículo 18 de la Constitución Española.',no:'Es el artículo 18 CE, que protege la inviolabilidad del domicilio y el secreto de las comunicaciones.'},
+    {q:'¿Sabes qué son los derechos fundamentales?',si:'Correcto. Son los derechos básicos reconocidos en la Constitución con máxima protección.',no:'Son los derechos básicos recogidos en los artículos 14 a 29 de la CE, con máxima protección jurídica.'},
+    {q:'¿Conoces qué institución vela por los derechos de los ciudadanos frente a la Administración?',si:'Así es, el Defensor del Pueblo.',no:'Es el Defensor del Pueblo, una institución independiente que protege los derechos de los ciudadanos.'}
+  ],
+  2:[
+    {q:'¿Sabes qué diferencia hay entre dolo e imprudencia?',si:'Correcto. El dolo es intención, la imprudencia es falta de cuidado.',no:'El dolo implica intención de cometer el delito. La imprudencia es actuar sin el cuidado debido.'},
+    {q:'¿Conoces los elementos del delito?',si:'Muy bien. Acción típica, antijurídica y culpable.',no:'Los elementos son: acción u omisión, tipicidad, antijuridicidad y culpabilidad.'},
+    {q:'¿Sabes qué es la legítima defensa?',si:'Correcto. Es la causa de justificación que permite defenderse ante una agresión ilegítima.',no:'La legítima defensa permite actuar ante una agresión ilegítima actual, con proporcionalidad en la respuesta.'},
+    {q:'¿Sabes cuándo existe responsabilidad civil derivada del delito?',si:'Así es. Siempre que el delito cause un daño patrimonial o moral.',no:'Existe responsabilidad civil cuando el delito causa daño material, moral o personal a la víctima.'},
+    {q:'¿Conoces qué es el principio de proporcionalidad en el uso de la fuerza?',si:'Perfecto. La fuerza usada debe ser la mínima e indispensable para el fin legítimo.',no:'La fuerza debe ser proporcional a la amenaza. No se puede usar más fuerza de la estrictamente necesaria.'},
+    {q:'¿Sabes qué son las eximentes en derecho penal?',si:'Correcto. Son circunstancias que eliminan la responsabilidad penal.',no:'Las eximentes son situaciones que eximen de responsabilidad penal: legítima defensa, estado de necesidad, etc.'},
+    {q:'¿Conoces qué es la flagrancia delictiva?',si:'Exacto. Es cuando el delito se comete en el momento o se descubre inmediatamente después.',no:'Un delito flagrante es el que se está cometiendo en el momento o del que el autor es sorprendido inmediatamente después.'}
+  ],
+  3:[
+    {q:'¿Sabes qué es un atestado policial?',si:'Perfecto. Es el documento que recoge las actuaciones policiales.',no:'El atestado es el documento oficial donde se recogen todas las actuaciones en el lugar de los hechos.'},
+    {q:'¿Conoces las fases del proceso penal?',si:'Muy bien. Instrucción, juicio oral y ejecución de sentencia.',no:'Las fases son: instrucción o investigación, juicio oral y ejecución de la sentencia.'},
+    {q:'¿Sabes qué es el principio de presunción de inocencia?',si:'Correcto. Todo acusado es inocente hasta que se demuestre lo contrario.',no:'La presunción de inocencia significa que nadie puede ser considerado culpable hasta que haya sentencia firme.'},
+    {q:'¿Conoces qué es una diligencia de investigación?',si:'Exacto. Son actuaciones para recopilar pruebas durante la instrucción.',no:'Las diligencias de investigación son actuaciones del juez o fiscal para obtener pruebas en la fase de instrucción.'},
+    {q:'¿Sabes qué es el habeas corpus?',si:'Correcto. Es el procedimiento para controlar la legalidad de una detención.',no:'El habeas corpus permite revisar ante un juez si una detención es legal, garantizando la libertad del detenido.'},
+    {q:'¿Conoces la diferencia entre denuncia y querella?',si:'Bien. La denuncia informa de un delito; la querella además ejercita la acción penal.',no:'La denuncia solo informa del delito. La querella además solicita ser parte en el proceso como acusación.'},
+    {q:'¿Sabes qué es el principio acusatorio?',si:'Correcto. Nadie puede ser juzgado sin que haya una acusación formal.',no:'El principio acusatorio exige que exista una acusación separada del juez para que pueda celebrarse el juicio.'}
+  ],
+  4:[
+    {q:'¿Cuánto tiempo puede mantenerse una detención sin pasar a disposición judicial?',si:'Así es. 72 horas como máximo.',no:'El plazo máximo es de 72 horas, tras las cuales debe ponerse al detenido a disposición judicial.'},
+    {q:'¿Sabes cuáles son los derechos del detenido según el art. 520 LECrim?',si:'Correcto. Derecho a guardar silencio, a no declarar contra sí mismo y a asistencia letrada.',no:'El detenido tiene derecho a guardar silencio, no declarar contra sí mismo, y asistencia letrada desde el momento de la detención.'},
+    {q:'¿Conoces qué es una detención ciudadana?',si:'Exacto. Cualquier ciudadano puede detener a quien sea sorprendido en flagrante delito.',no:'La detención ciudadana permite a cualquier persona detener a quien cometa un delito flagrante, entregándolo a la autoridad.'},
+    {q:'¿Sabes qué debe hacer el vigilante justo después de practicar una detención?',si:'Correcto. Entregar al detenido a la autoridad policial de inmediato.',no:'El vigilante debe entregar inmediatamente al detenido a la Policía o Guardia Civil, sin demora injustificada.'},
+    {q:'¿Conoces qué es el cacheo superficial?',si:'Bien. Es la palpación externa para detectar objetos peligrosos, sin quitar ropa.',no:'El cacheo superficial es una palpación externa del cuerpo para detectar armas u objetos peligrosos, sin desnudar al individuo.'},
+    {q:'¿Sabes qué significa el derecho a no autoincriminarse?',si:'Correcto. El detenido no está obligado a declarar contra sí mismo.',no:'Es el derecho a no facilitar pruebas contra uno mismo. El detenido puede guardar silencio sin que eso se use en su contra.'},
+    {q:'¿Conoces qué es el parte de detención?',si:'Exacto. Es el documento que el vigilante debe cumplimentar tras cada detención.',no:'El parte de detención recoge los datos del detenido, motivo y circunstancias de la detención. Es obligatorio cumplimentarlo.'}
+  ]
+};
+
+function mostrarPregunta(secNum){
+  var pregs=PREGUNTAS[secNum]||PREGUNTAS[1];
+  var preg=pregs[Math.floor(Math.random()*pregs.length)];
+  var ag=gAg();
+  var capNombre=capActual?capActual.nombre:'este capitulo';
+  var overlay=document.getElementById('uf-pregunta');
+  var texto=document.getElementById('preg-texto');
+  var btnSi=document.getElementById('preg-si');
+  var btnNo=document.getElementById('preg-no');
+  if(!overlay)return;
+  var pregTexto='Antes de entrar en '+capNombre+', '+ag+' te hace una pregunta: '+preg.q;
+  texto.textContent=pregTexto;
+  overlay.style.display='block';
+  animPuntual('vid-cap','pregunta','hablando',4);
+  speak(pregTexto,'voz-cap');
+  function cerrar(resp){
+    overlay.style.display='none';window.speechSynthesis&&window.speechSynthesis.cancel();
+    setTimeout(function(){speak(resp,'voz-cap');},200);
+    btnSi.removeEventListener('click',onSi);btnNo.removeEventListener('click',onNo);
+  }
+  function onSi(){cerrar(preg.si);}function onNo(){cerrar(preg.no);}
+  btnSi.addEventListener('click',onSi);btnNo.addEventListener('click',onNo);
+}
+
+var inactivoTimer=null;
+var MI_CAP=getParamCap(); // null=general, 1-4=capitulo especifico
+
+function resetInactivo(){
+  if(inactivoTimer)clearTimeout(inactivoTimer);
+  var av=document.getElementById('uf-inactivo');if(av)av.style.display='none';
+  // Registrar actividad en localStorage para coordinar iframes
+  localStorage.setItem('uf_last_activity',Date.now().toString());
+  inactivoTimer=setTimeout(function(){
+    // Comprobar si otro iframe ya habló recientemente (en los ultimos 10s)
+    var lastSpeak=parseInt(localStorage.getItem('uf_last_speak')||'0');
+    if(Date.now()-lastSpeak<10000)return; // otro iframe habló hace menos de 10s, no hablar
+
+    var ag=gAg();var frase=r(FRASES_INACTIVO)(ag);
+    var av=document.getElementById('uf-inactivo');
+    if(av){av.textContent=frase;av.style.display='block';}
+    var vidId=pantActual==='p-inicio'?'vid-inicio':'vid-cap';
+    var vozId=pantActual==='p-inicio'?'voz-inicio':'voz-cap';
+    animPuntual(vidId,'impaciente','idle',4);
+    speak(frase,vozId);
+    localStorage.setItem('uf_last_speak',Date.now().toString());
+    setTimeout(function(){if(av)av.style.display='none';},5000);
+  },120000);
+}
+
+// Mostrar actividades de un modulo/seccion
+function mostrarActividades(modulos,panelId){
+  var panel=document.getElementById(panelId);if(!panel)return;
+  var prev=panel.querySelector('.uf-acts-lista');if(prev)prev.remove();
+  var lista=document.createElement('div');lista.className='uf-acts-lista';
+  var acts=modulos.filter(function(m){return m.tipo==='quiz'||m.tipo==='assign'||m.tipo==='forum';});
+  if(acts.length===0){
+    lista.innerHTML='<div style="font-size:12px;color:#8a9ab5;padding:8px;">No hay actividades disponibles.</div>';
+  }else{
+    acts.forEach(function(mod){
+      var a=document.createElement('a');a.href=mod.url;a.target='_top';
+      var nombres={quiz:'Evaluacion',assign:'Tarea',forum:'Foro de reflexion'};
+      a.innerHTML='<span>'+(nombres[mod.tipo]||mod.nombre)+'</span><span style="margin-left:auto;color:#c9a84c;font-size:10px;">entrar</span>';
+      var consejo=CONSEJOS[Math.floor(Math.random()*CONSEJOS.length)];
+      a.addEventListener('click',function(e){
+        e.preventDefault();var url=this.href;
+        animPuntual('vid-cap','senalar','hablando',3);
+        speak('Antes de empezar, recuerda: '+consejo,'voz-cap',function(){window.top.location.href=url;});
+      });
+      lista.appendChild(a);
+    });
+  }
+  panel.appendChild(lista);lista.scrollIntoView({behavior:'smooth',block:'nearest'});
+  animPuntual('vid-cap','walkie','hablando',4);
+  speak('Aqui tienes las actividades. Pulsa en la que quieras hacer.','voz-cap');
+}
+
+// Cargar datos del Worker
+function cargarCurso(cb){
+  fetch(WORKER_URL+'?action=contents')
+    .then(function(r){return r.json();})
+    .then(function(sections){
+      if(!Array.isArray(sections)){if(cb)cb();return;}
+      CURSO.caps=[];
+      sections.forEach(function(sec){
+        // Solo secciones visibles con nombre que contenga "Capitulo" o sean secciones 1-N
+        if(sec.section===0)return; // seccion general
+        if(!sec.visible)return;
+        if(sec.component)return; // son subsecciones, no capitulos principales
+
+        var modulos=[];
+        if(sec.modules){
+          sec.modules.forEach(function(mod){
+            if(!mod.uservisible)return;
+            modulos.push({
+              id:mod.id,
+              nombre:mod.name,
+              tipo:mod.modname,
+              url:mod.url||'#',
+              seccionId:mod.customdata&&mod.customdata!=='\"\""'?JSON.parse(mod.customdata).sectionid:null
+            });
+          });
+        }
+
+        CURSO.caps.push({
+          seccion:sec.section,
+          nombre:sec.name,
+          url_todo:'https://campus.iaeformacion.com/course/view.php?id='+COURSE_ID+'&section='+sec.section,
+          modulos:modulos
+        });
+      });
+
+      // Ordenar por numero de seccion
+      CURSO.caps.sort(function(a,b){return a.seccion-b.seccion;});
+      CURSO.cargado=true;
+      if(cb)cb();
+    })
+    .catch(function(){CURSO.cargado=true;if(cb)cb();});
+}
+
+// Pantalla inicio
+function mostrarInicio(){
+  ir('p-inicio');
+  var al=gAl(),ag=gAg();
+  var pf=document.getElementById('pf-inicio'),pp=document.getElementById('pp-inicio');
+  var pct=pctTotal();
+  if(pf)pf.style.width=pct+'%';if(pp)pp.textContent=pct;
+  var dato=document.getElementById('dato-inicio');
+  if(dato)dato.textContent=CONSEJOS[Math.floor(Date.now()/86400000)%CONSEJOS.length];
+
+  renderCaps();
+
+  var co=gCo();
+  var next=CURSO.caps.find(function(c){return co.indexOf('cap_'+c.seccion)===-1;});
+  var msg=document.getElementById('msg-inicio');
+
+  if(!next&&CURSO.caps.length>0){
+    if(msg)msg.innerHTML='<strong style="color:#e8c96a;">'+al+'</strong>, has completado el curso!';
+    iniciarRotacion('vid-inicio','idle','perfecto',14000);
+  }else{
+    if(msg)msg.innerHTML='Hola <strong style="color:#e8c96a;">'+al+'</strong>. Soy <strong style="color:#c9a84c;">'+ag+'</strong>.<br>Tu siguiente paso es '+(next?'<strong>'+next.nombre+'</strong>':'comenzar')+'. Pulsa sobre el para empezar.';
+    var vA=document.getElementById('vid-inicio-a');
+    if(vA){vA.src='./WEBM/Saludo.webm';vA.loop=false;vA.playbackRate=0.5;vA.style.opacity='1';vA.load();
+      vA.oncanplay=function(){vA.oncanplay=null;vA.play().catch(function(){});
+        vA.onended=function(){vA.onended=null;iniciarRotacion('vid-inicio','idle','idle',18000);};};
+    }
+  }
+}
+
+function renderCaps(){
+  var lt=document.getElementById('lista-caps');if(!lt)return;lt.innerHTML='';
+  if(!CURSO.cargado){lt.innerHTML='<div class="uf-cargando">Cargando curso...</div>';return;}
+  if(CURSO.caps.length===0){lt.innerHTML='<div class="uf-cargando">No hay capitulos disponibles.</div>';return;}
+  var co=gCo();
+  CURSO.caps.forEach(function(cap,i){
+    var completado=co.indexOf('cap_'+cap.seccion)!==-1;
+    var bloqueado=i>0&&co.indexOf('cap_'+CURSO.caps[i-1].seccion)===-1;
+    var d=document.createElement('div');
+    d.className='uf-item'+(bloqueado?' uf-item-bloq':'');
+    d.style.background=completado?'rgba(0,100,60,0.2)':bloqueado?'rgba(26,58,107,0.15)':'rgba(26,58,107,0.4)';
+    d.style.border='1px solid '+(completado?'rgba(0,200,100,0.3)':bloqueado?'rgba(58,114,196,0.15)':'rgba(58,114,196,0.35)');
+    d.style.color=completado?'#4caf7d':bloqueado?'rgba(138,154,181,0.4)':'#d0daea';
+    d.innerHTML='<span>'+cap.nombre+'</span><span>'+(completado?'Completado':bloqueado?'Bloqueado':'')+'</span>';
+    if(bloqueado){
+      d.addEventListener('click',function(){
+        animPuntual('vid-inicio','stop','idle',3);
+        setTimeout(function(){speak(r(FRASES_BLOQUEADO)(gAl()),'voz-inicio');},300);
+      });
+    }else{
+      (function(c){d.addEventListener('click',function(){
+        window.speechSynthesis&&window.speechSynthesis.cancel();
+        setTimeout(function(){irCap(c);},200);
+      });})(cap);
+    }
+    lt.appendChild(d);
+  });
+}
+
+// Estado del capitulo actual
+var capActual=null;
+
+function irCap(cap){
+  capActual=cap;
+
+  // Comprobar si el capitulo esta bloqueado
+  var co=gCo();
+  var idxCap=CURSO.caps.findIndex(function(c){return c.seccion===cap.seccion;});
+  var bloqueado=idxCap>0&&co.indexOf('cap_'+CURSO.caps[idxCap-1].seccion)===-1;
+
+  if(bloqueado){
+    // Mostrar pantalla de bloqueado en lugar del capitulo
+    ir('p-inicio');
+    var msg=document.getElementById('msg-inicio');
+    if(msg)msg.innerHTML='<strong style="color:#cf6679;">Este capitulo esta bloqueado.</strong><br>Completa el capitulo anterior primero.';
+    iniciarRotacion('vid-inicio','idle','stop',20000);
+    renderCaps();
+    return;
+  }
+
+  ir('p-cap');
+
+  var co=gCo();
+  var al=gAl(),ag=gAg();
+  var completado=co.indexOf('cap_'+cap.seccion)!==-1;
+
+  // Actualizar UI
+  var label=document.getElementById('cap-num-label');if(label)label.textContent='Capitulo '+cap.seccion;
+  var nombre=document.getElementById('cap-nombre-label');if(nombre)nombre.textContent=cap.nombre;
+  var chip=document.getElementById('chip-cap');if(chip)chip.textContent=ag.toUpperCase();
+  var progLabel=document.getElementById('cap-prog-label');if(progLabel)progLabel.textContent=cap.nombre;
+  var pf=document.getElementById('pf-cap');if(pf)pf.style.width=(completado?100:0)+'%';
+  var pp=document.getElementById('pp-cap');if(pp)pp.textContent=(completado?'Completado':'En progreso');
+
+  // Ocultar panel modulo
+  var pm=document.getElementById('panel-modulo');if(pm)pm.style.display='none';
+
+  // Detectar subsecciones (modulos tipo subsection)
+  var subsecciones=cap.modulos.filter(function(m){return m.tipo==='subsection';});
+  var tieneSubsecciones=subsecciones.length>0;
+
+  renderModulos(cap,tieneSubsecciones);
+
+  var msg=document.getElementById('msg-cap');
+  var animales=['hablando1','hablando2','senalar'];
+  var primerAnim=animales[cap.seccion%animales.length];
+
+  // Boton escuchar bienvenida
+  var prevBtn=document.getElementById('btn-escuchar-bienvenida');
+  if(prevBtn)prevBtn.remove();
+  var btnEsc=document.createElement('button');
+  btnEsc.id='btn-escuchar-bienvenida';
+  btnEsc.style.cssText='width:100%;padding:10px;background:rgba(201,168,76,0.15);border:1px solid #c9a84c;border-radius:8px;font-size:12px;font-weight:700;color:#c9a84c;cursor:pointer;margin-bottom:10px;';
+  btnEsc.textContent='Escuchar presentacion del capitulo';
+  btnEsc.onclick=function(){
+    var bienvenidas=BIENVENIDAS[cap.seccion]||BIENVENIDAS[1];
+    var frase=r(bienvenidas);
+    animPuntual('vid-cap','senalar','hablando',5);
+    speak(frase,'voz-cap');
+    btnEsc.style.opacity='0.5';btnEsc.textContent='Reproduciendo...';
+    setTimeout(function(){btnEsc.style.opacity='1';btnEsc.textContent='Escuchar presentacion del capitulo';},8000);
+  };
+  var msgCap=document.getElementById('msg-cap');
+  if(msgCap&&msgCap.parentNode)msgCap.parentNode.insertBefore(btnEsc,msgCap);
+
+  if(completado){
+    if(msg)msg.innerHTML='Has completado este capitulo. Pulsa Siguiente para continuar.';
+    animPuntual('vid-cap','perfecto','hablando',4);
+    var sig=document.getElementById('btn-sig-cap');if(sig)sig.style.display='block';
+  }else{
+    if(msg)msg.innerHTML='Hola <strong style="color:#e8c96a;">'+al+'</strong>. Soy <strong style="color:#c9a84c;">'+ag+'</strong>.<br>Estudia el contenido y marca como completado cuando termines.';
+    iniciarRotacion('vid-cap','hablando',primerAnim,11000);
+    setTimeout(function(){
+      speak(r(FRASES_ENTRAR)(al,cap.nombre),'voz-cap',function(){
+        setTimeout(function(){mostrarPregunta(cap.seccion);},1500);
+      });
+    },400);
+    var sig=document.getElementById('btn-sig-cap');if(sig)sig.style.display='none';
+  }
+
+  // Boton completar
+  var bcomp=document.getElementById('btn-comp-cap-dyn');
+  if(bcomp)bcomp.remove();
+
+  // Boton siguiente con transición directa al siguiente capitulo
+  var sigBtn=document.getElementById('btn-sig-cap');
+  if(sigBtn){
+    sigBtn.onclick=null;
+    sigBtn.onclick=function(){
+      window.speechSynthesis&&window.speechSynthesis.cancel();
+      // Buscar el siguiente capitulo
+      var co=gCo();
+      var sigCap=CURSO.caps.find(function(c){
+        return co.indexOf('cap_'+c.seccion)===-1 && c.seccion!==cap.seccion;
+      });
+      if(sigCap){
+        // Transición directa al siguiente capitulo
+        animPuntual('vid-cap','walkie','hablando',2);
+        setTimeout(function(){
+          irCap(sigCap);
+          setTimeout(function(){
+            speak('Bienvenido a '+sigCap.nombre+'. Vamos a por ello.','voz-cap');
+          },600);
+        },800);
+      }else{
+        // No hay mas capitulos, volver al inicio
+        mostrarInicio();
+      }
+    };
+  }
+}
+
+function renderModulos(cap,tieneSubsecciones){
+  var lt=document.getElementById('lista-modulos');if(!lt)return;lt.innerHTML='';
+  var co=gCo();
+
+  if(tieneSubsecciones){
+    // Mostrar subsecciones como items clicables
+    cap.modulos.filter(function(m){return m.tipo==='subsection';}).forEach(function(mod){
+      var d=document.createElement('div');
+      d.className='uf-item';
+      d.style.background='rgba(26,58,107,0.4)';
+      d.style.border='1px solid rgba(58,114,196,0.35)';
+      d.style.color='#d0daea';
+      d.innerHTML='<span>'+mod.nombre+'</span><span></span>';
+      d.addEventListener('click',function(){abrirSubseccion(mod,cap);});
+      lt.appendChild(d);
+    });
+  }else{
+    // Mostrar contenido directo del capitulo
+    var scorms=cap.modulos.filter(function(m){return m.tipo==='scorm';});
+    var acts=cap.modulos.filter(function(m){return m.tipo==='quiz'||m.tipo==='assign'||m.tipo==='forum';});
+
+    // Panel con botones
+    var pm=document.getElementById('panel-modulo');if(pm)pm.style.display='block';
+    var mt=document.getElementById('modulo-titulo');if(mt)mt.textContent=cap.nombre;
+    var md=document.getElementById('modulo-desc');if(md)md.textContent='Accede al contenido y a las actividades de este capitulo.';
+
+    var btns=document.getElementById('modulo-btns');if(btns)btns.innerHTML='';
+
+    if(scorms.length>0){
+      var bCont=document.createElement('button');
+      bCont.className='uf-btn-azul';bCont.textContent='Ver contenido';
+      bCont.onclick=function(){window.top.location.href=scorms[0].url;};
+      if(btns)btns.appendChild(bCont);
+    }
+
+    if(acts.length>0){
+      var bActs=document.createElement('button');
+      bActs.className='uf-btn-azul';bActs.textContent='Ver actividades';
+      bActs.style.background='rgba(26,58,107,0.7)';bActs.style.borderColor='rgba(58,114,196,0.8)';
+      bActs.onclick=function(){mostrarActividades(acts,'panel-modulo');};
+      if(btns)btns.appendChild(bActs);
+    }
+
+    var bComp=document.createElement('button');
+    bComp.className='uf-btn-verde';bComp.id='btn-comp-cap-dyn';
+    var capId='cap_'+cap.seccion;
+    if(isC(capId)){bComp.textContent='Completado';bComp.style.opacity='0.5';bComp.style.cursor='default';}
+    else{bComp.textContent='Marcar como completado';}
+    bComp.onclick=function(){
+      if(isC(capId))return;
+      mC(capId);
+      bComp.textContent='Completado';bComp.style.opacity='0.5';bComp.style.cursor='default';
+      var msg=document.getElementById('msg-cap');
+      if(msg)msg.innerHTML='Has completado este capitulo. Pulsa Siguiente para continuar.';
+      animPuntual('vid-cap','perfecto','hablando',4);lanzarConfeti();
+      var sig=document.getElementById('btn-sig-cap');
+      if(sig){
+        sig.style.display='block';
+        // Buscar nombre del siguiente capitulo para el boton
+        var co2=gCo();
+        var sigCap2=CURSO.caps.find(function(c){return co2.indexOf('cap_'+c.seccion)===-1&&c.seccion!==cap.seccion;});
+        sig.textContent=sigCap2?'Siguiente: '+sigCap2.nombre:'Volver al inicio';
+      }
+      var pf=document.getElementById('pf-cap');if(pf)pf.style.width='100%';
+      var pp=document.getElementById('pp-cap');if(pp)pp.textContent='Completado';
+      setTimeout(function(){speak(r(FRASES_COMPLETAR)(gAl(),cap.nombre),'voz-cap');},300);
+      setTimeout(function(){
+        var pf2=document.getElementById('pf-inicio'),pp2=document.getElementById('pp-inicio');
+        var pct=pctTotal();if(pf2)pf2.style.width=pct+'%';if(pp2)pp2.textContent=pct;
+      },500);
+    };
+    if(btns)btns.appendChild(bComp);
+
+    // Ver todo — solo uno, insertado después de los botones
+    var bTodo=document.createElement('a');
+    bTodo.className='uf-btn-siguiente';bTodo.style.display='block';bTodo.style.marginTop='8px';
+    bTodo.textContent='Ver todo el capitulo';bTodo.href=cap.url_todo;bTodo.target='_top';
+    if(btns&&btns.parentNode)btns.parentNode.insertBefore(bTodo,btns.nextSibling);
+  }
+}
+
+function abrirSubseccion(mod,cap){
+  // Buscar la seccion de esta subseccion en los datos del Worker
+  var sectionId=mod.seccionId;
+  var pm=document.getElementById('panel-modulo');if(pm)pm.style.display='block';
+  var mt=document.getElementById('modulo-titulo');if(mt)mt.textContent=mod.nombre;
+  var md=document.getElementById('modulo-desc');if(md)md.textContent='Accede al contenido de este tema.';
+  var btns=document.getElementById('modulo-btns');if(btns)btns.innerHTML='';
+  var ma=document.getElementById('modulo-acts');if(ma)ma.innerHTML='';
+
+  // Buscar la subseccion completa desde el Worker para tener sus modulos
+  fetch(WORKER_URL+'?action=contents')
+    .then(function(r2){return r2.json();})
+    .then(function(sections){
+      var subsec=sections.find(function(s){return s.id==sectionId;});
+      var modsSubsec=subsec&&subsec.modules?subsec.modules:[];
+      var scorms=modsSubsec.filter(function(m){return m.modname==='scorm';});
+      var acts=modsSubsec.filter(function(m){return m.modname==='quiz'||m.modname==='assign'||m.modname==='forum';});
+      var secUrl='https://campus.iaeformacion.com/course/view.php?id='+COURSE_ID+'&section='+subsec.section;
+
+      if(scorms.length>0&&btns){
+        var bCont=document.createElement('button');bCont.className='uf-btn-azul';bCont.textContent='Ver contenido';
+        bCont.onclick=function(){window.top.location.href=scorms[0].url;};btns.appendChild(bCont);
+      }
+      if(acts.length>0&&btns){
+        var actsData=acts.map(function(m){return{nombre:m.name,tipo:m.modname,url:m.url};});
+        var bActs=document.createElement('button');bActs.className='uf-btn-azul';bActs.textContent='Ver actividades';
+        bActs.style.background='rgba(26,58,107,0.7)';bActs.style.borderColor='rgba(58,114,196,0.6)';
+        bActs.onclick=function(){mostrarActividadesRaw(actsData,'panel-modulo');};btns.appendChild(bActs);
+      }
+
+      // Boton completado para subseccion
+      var subId='sub_'+sectionId;
+      var bComp=document.createElement('button');
+      bComp.className='uf-btn-verde';
+      if(isC(subId)){bComp.textContent='Completado';bComp.style.opacity='0.5';bComp.style.cursor='default';}
+      else{bComp.textContent='Marcar como completado';}
+      bComp.onclick=function(){
+        if(isC(subId))return;
+        mC(subId);
+        bComp.textContent='Completado';bComp.style.opacity='0.5';bComp.style.cursor='default';
+        animPuntual('vid-cap','perfecto','hablando',4);lanzarConfeti();
+        setTimeout(function(){speak('Muy bien. Has completado '+mod.nombre+'.','voz-cap');},300);
+      };
+      if(btns)btns.appendChild(bComp);
+
+      // Boton ver todo (solo uno)
+      var bTodo=document.createElement('a');bTodo.className='uf-btn-siguiente';
+      bTodo.style.display='block';bTodo.style.marginBottom='8px';bTodo.style.marginTop='8px';
+      bTodo.textContent='Ver todo el tema';bTodo.href=secUrl;bTodo.target='_top';
+      if(btns)btns.after(bTodo);
+
+      animPuntual('vid-cap','senalar','hablando',5);
+      setTimeout(function(){speak(r(FRASES_ENTRAR)(gAl(),mod.nombre),'voz-cap');},400);
+      if(pm)pm.scrollIntoView({behavior:'smooth',block:'nearest'});
+    })
+    .catch(function(){});
+}
+
+function mostrarActividadesRaw(acts,panelId){
+  var panel=document.getElementById(panelId);if(!panel)return;
+  var prev=panel.querySelector('.uf-acts-lista');if(prev)prev.remove();
+  var lista=document.createElement('div');lista.className='uf-acts-lista';
+  var nombres={quiz:'Evaluacion',assign:'Tarea',forum:'Foro de reflexion'};
+  acts.forEach(function(act){
+    var a=document.createElement('a');a.href=act.url;a.target='_top';
+    a.innerHTML='<span>'+(nombres[act.tipo]||act.nombre)+'</span><span style="margin-left:auto;color:#c9a84c;font-size:10px;">entrar</span>';
+    var consejo=CONSEJOS[Math.floor(Math.random()*CONSEJOS.length)];
+    a.addEventListener('click',function(e){
+      e.preventDefault();var url=this.href;
+      animPuntual('vid-cap','senalar','hablando',3);
+      speak('Antes de empezar, recuerda: '+consejo,'voz-cap',function(){window.top.location.href=url;});
+    });
+    lista.appendChild(a);
+  });
+  panel.appendChild(lista);lista.scrollIntoView({behavior:'smooth',block:'nearest'});
+  animPuntual('vid-cap','walkie','hablando',4);
+  speak('Aqui tienes las actividades. Pulsa en la que quieras hacer.','voz-cap');
+}
+
+// Bienvenidas especificas por seccion basadas en el contenido del curso
+var BIENVENIDAS = {
+  1: [
+    'Bienvenido al Capitulo 1: Derecho Politico y Administrativo. Estudiaremos la Constitucion Espanola de 1978, el principio de jerarquia normativa, los derechos fundamentales y su aplicacion en seguridad privada. Tambien veremos la jurisprudencia sobre cacheos y registros.',
+    'Capitulo 1. La Constitucion es la norma suprema con 169 articulos. Aprenderemos los derechos fundamentales como la libertad, la seguridad y la inviolabilidad del domicilio. Todo clave para tu trabajo diario como vigilante.',
+    'Capitulo 1: Derecho Politico y Administrativo. Analizaremos la estructura constitucional, la division de poderes, y los derechos de mayor interes para el personal de seguridad privada.'
+  ],
+  2: [
+    'Bienvenido al Capitulo 2: Derecho Penal. Estudiaremos el Codigo Penal y los elementos del delito. Aprenderemos la diferencia entre dolo e imprudencia, las eximentes como la legitima defensa, y los delitos mas relevantes para el personal de seguridad.',
+    'Capitulo 2: Derecho Penal. El derecho penal tiene como finalidad el mantenimiento de la paz social. Veremos los tipos de delitos contra el patrimonio, la libertad y la vida, y como aplican las eximentes en la actuacion del vigilante.',
+    'Entramos en el Capitulo 2. El Codigo Penal regula los delitos y sus penas. Estudiaremos la responsabilidad penal, la legitima defensa, el estado de necesidad, y los delitos que mas frecuentemente enfrenta un vigilante de seguridad.'
+  ],
+  3: [
+    'Bienvenido al Capitulo 3: Derecho Procesal. El derecho procesal penal regula el proceso desde su inicio hasta su fin. Aprenderemos sobre la jurisdiccion penal, la denuncia, el atestado policial, y el papel del vigilante ante la justicia.',
+    'Capitulo 3: Derecho Procesal. Veremos como funciona el sistema judicial penal, las fases del proceso, y como se tramita una denuncia. Tambien estudiaremos el habeas corpus y los derechos del detenido segun el articulo 520 de la Ley de Enjuiciamiento Criminal.',
+    'Capitulo 3. El derecho procesal penal busca investigar y sancionar las conductas delictivas. Aprenderemos la estructura de los tribunales, como se elabora un atestado, y la actuacion correcta del vigilante ante un procedimiento judicial.'
+  ],
+  4: [
+    'Bienvenido al Capitulo 4: Pautas de Actuacion en la Detencion. Estudiaremos los derechos del detenido, los plazos legales, como actuar correctamente en una detencion ciudadana, y las tecnicas de defensa personal dentro del marco legal.',
+    'Capitulo 4. Cualquier ciudadano puede detener a quien sea sorprendido en flagrante delito. Veremos los derechos del detenido del articulo 520 de la LECrim, el plazo maximo de 72 horas, y como elaborar el parte de detencion.',
+    'Ultimo capitulo. Veremos las pautas de actuacion en la detencion: como proceder legalmente, que decir al detenido, en que plazo hay que ponerlo a disposicion judicial, y como usar la fuerza de forma proporcional y dentro de la ley.'
+  ]
+};
+
+function getParamCap(){
+  try{var p=new URLSearchParams(window.location.search);return p.get('cap')?parseInt(p.get('cap')):null;}
+  catch(e){return null;}
+}
+
+window.addEventListener('DOMContentLoaded',function(){
+  var btnCom=document.getElementById('btn-comenzar');
+  if(btnCom)btnCom.addEventListener('click',function(){
+    var ale=document.getElementById('inp-al'),age=document.getElementById('inp-ag');
+    var a=ale?ale.value.trim():'',b=age?age.value.trim():'';
+    if(!a){if(ale)ale.style.borderColor='#cc4444';return;}
+    if(!b){if(age)age.style.borderColor='#cc4444';return;}
+    localStorage.setItem('uf_al',a);localStorage.setItem('uf_ag',b);
+    setChips();
+    var paramCap=getParamCap();
+    cargarCurso(function(){
+      if(paramCap){
+        var cap=CURSO.caps.find(function(c){return c.seccion===paramCap;});
+        if(cap){irCap(cap);}else{mostrarInicio();}
+      }else{
+        mostrarInicio();
+      }
+    });
+  });
+
+  var btnCambiar=document.getElementById('btn-cambiar');
+  if(btnCambiar)btnCambiar.addEventListener('click',function(){
+    window.speechSynthesis&&window.speechSynthesis.cancel();
+    localStorage.removeItem('uf_al');localStorage.removeItem('uf_ag');location.reload();
+  });
+
+  var btnVolver=document.getElementById('btn-volver-cap');
+  if(btnVolver)btnVolver.addEventListener('click',function(){
+    window.speechSynthesis&&window.speechSynthesis.cancel();mostrarInicio();
+  });
+
+  var inpAl=document.getElementById('inp-al'),inpAg=document.getElementById('inp-ag');
+  if(inpAl)inpAl.addEventListener('keydown',function(e){if(e.key==='Enter'&&inpAg)inpAg.focus();});
+  if(inpAg)inpAg.addEventListener('keydown',function(e){if(e.key==='Enter')document.getElementById('btn-comenzar').click();});
+
+  setChips();
+
+  var paramCap=getParamCap();
+  if(localStorage.getItem('uf_al')&&localStorage.getItem('uf_ag')){
+    // Ya tiene nombre — ir directamente
+    cargarCurso(function(){
+      if(paramCap){
+        var cap=CURSO.caps.find(function(c){return c.seccion===paramCap;});
+        if(cap){irCap(cap);}else{mostrarInicio();}
+      }else{
+        mostrarInicio();
+      }
+    });
+  } else if(paramCap){
+    // Tiene parametro cap pero no tiene nombre — rellenar con valores por defecto
+    // para que no se quede bloqueado en el formulario
+    var inpAlEl=document.getElementById('inp-al');
+    var inpAgEl=document.getElementById('inp-ag');
+    if(inpAlEl)inpAlEl.placeholder='Escribe tu nombre para continuar...';
+    if(inpAgEl)inpAgEl.placeholder='Nombre de tu agente (ej: Delta, Rex...)';
+    // Pre-rellenar agente con valor por defecto si viene de otro iframe
+    if(inpAgEl&&!inpAgEl.value)inpAgEl.value='Agente';
+  }
+
+  document.addEventListener('click',resetInactivo);
+  document.addEventListener('keydown',resetInactivo);
+  resetInactivo();
+
+  // Sincronizar progreso entre iframes cuando cambia localStorage
+  window.addEventListener('storage',function(e){
+    if(e.key==='uf_co'){
+      // Otro iframe actualizó el progreso — refrescar UI
+      if(pantActual==='p-inicio'){
+        var pf=document.getElementById('pf-inicio'),pp=document.getElementById('pp-inicio');
+        var pct=pctTotal();if(pf)pf.style.width=pct+'%';if(pp)pp.textContent=pct;
+        renderCaps();
+      }
+      if(pantActual==='p-cap'&&capActual){
+        var capId='cap_'+capActual.seccion;
+        if(isC(capId)){
+          var bcomp=document.getElementById('btn-comp-cap-dyn');
+          if(bcomp){bcomp.textContent='Completado';bcomp.style.opacity='0.5';bcomp.style.cursor='default';}
+          var sig=document.getElementById('btn-sig-cap');if(sig)sig.style.display='block';
+        }
+      }
+    }
+    if(e.key==='uf_last_activity'){
+      // Otro iframe tuvo actividad — resetear timer de inactividad sin hablar
+      if(inactivoTimer)clearTimeout(inactivoTimer);
+      inactivoTimer=setTimeout(function(){
+        var lastSpeak=parseInt(localStorage.getItem('uf_last_speak')||'0');
+        if(Date.now()-lastSpeak<10000)return;
+        var ag=gAg();var frase=r(FRASES_INACTIVO)(ag);
+        var av=document.getElementById('uf-inactivo');
+        if(av){av.textContent=frase;av.style.display='block';}
+        var vidId=pantActual==='p-inicio'?'vid-inicio':'vid-cap';
+        var vozId=pantActual==='p-inicio'?'voz-inicio':'voz-cap';
+        animPuntual(vidId,'impaciente','idle',4);
+        speak(frase,vozId);
+        localStorage.setItem('uf_last_speak',Date.now().toString());
+        setTimeout(function(){if(av)av.style.display='none';},5000);
+      },120000);
+    }
+  });
+
+  function sendHeight(){var h=document.body.scrollHeight;window.parent.postMessage({ufHeight:h},'*');}
+  sendHeight();
+  new MutationObserver(sendHeight).observe(document.body,{childList:true,subtree:true,attributes:true});
+  window.addEventListener('resize',sendHeight);
+});
+</script>
+</body>
+</html>
