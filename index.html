@@ -332,13 +332,23 @@ if(window.speechSynthesis){window.speechSynthesis.getVoices();window.speechSynth
 
 function speak(t,vozId,cb){
   if(!window.speechSynthesis){if(cb)cb();return;}
+  // Comprobar si otro iframe está hablando
+  var lastSpeak=parseInt(localStorage.getItem('uf_last_speak')||'0');
+  if(Date.now()-lastSpeak<500){
+    // Otro iframe acaba de hablar, esperar
+    setTimeout(function(){speak(t,vozId,cb);},1000);
+    return;
+  }
   window.speechSynthesis.cancel();
   var u=new SpeechSynthesisUtterance(t);u.lang='es-ES';u.rate=0.92;
   var vs=window.speechSynthesis.getVoices();
   var v=vs.find(function(x){return x.lang==='es-ES'&&x.name.toLowerCase().indexOf('google')!==-1;})||vs.find(function(x){return x.lang.indexOf('es')===0;});
   if(v)u.voice=v;
   var vb=document.getElementById(vozId);
-  u.onstart=function(){if(vb)vb.style.display='flex';};
+  u.onstart=function(){
+    if(vb)vb.style.display='flex';
+    localStorage.setItem('uf_last_speak',Date.now().toString());
+  };
   u.onend=u.onerror=function(){if(vb)vb.style.display='none';if(cb)cb();};
   window.speechSynthesis.speak(u);
 }
@@ -476,8 +486,6 @@ function cargarCurso(cb){
     .then(function(r){return r.json();})
     .then(function(sections){
       if(!Array.isArray(sections)){if(cb)cb();return;}
-      console.log('Secciones recibidas:', sections.length);
-      sections.forEach(function(s){console.log('sec',s.section,'component:',s.component,'visible:',s.visible,'nombre:',s.name);});
       CURSO.caps=[];
       sections.forEach(function(sec){
         if(sec.section===0)return; // seccion general
@@ -632,7 +640,9 @@ function irCap(cap){
     var bienvenidas=BIENVENIDAS[cap.seccion]||BIENVENIDAS[1];
     var frase=r(bienvenidas);
     animPuntual('vid-cap','senalar','hablando',5);
-    speak(frase,'voz-cap');
+    speak(frase,'voz-cap',function(){
+      setTimeout(function(){mostrarPregunta(cap.seccion);},1000);
+    });
     btnEsc.style.opacity='0.5';btnEsc.textContent='Reproduciendo...';
     setTimeout(function(){btnEsc.style.opacity='1';btnEsc.textContent='Escuchar presentacion del capitulo';},8000);
   };
@@ -646,11 +656,6 @@ function irCap(cap){
   }else{
     if(msg)msg.innerHTML='Hola <strong style="color:#e8c96a;">'+al+'</strong>. Soy <strong style="color:#c9a84c;">'+ag+'</strong>.<br>Estudia el contenido y marca como completado cuando termines.';
     iniciarRotacion('vid-cap','hablando',primerAnim,11000);
-    setTimeout(function(){
-      speak(r(FRASES_ENTRAR)(al,cap.nombre),'voz-cap',function(){
-        setTimeout(function(){mostrarPregunta(cap.seccion);},1500);
-      });
-    },400);
     var sig=document.getElementById('btn-sig-cap');if(sig)sig.style.display='none';
   }
 
@@ -893,12 +898,21 @@ window.addEventListener('DOMContentLoaded',function(){
         mostrarInicio();
       }
     });
+    // Saludo solo la primera vez
+    if(!localStorage.getItem('uf_bienvenida')){
+      localStorage.setItem('uf_bienvenida','1');
+      setTimeout(function(){speak(r(FRASES_SALUDO)(a,b),'voz-inicio');},600);
+    }
   });
 
   var btnCambiar=document.getElementById('btn-cambiar');
   if(btnCambiar)btnCambiar.addEventListener('click',function(){
     window.speechSynthesis&&window.speechSynthesis.cancel();
-    localStorage.removeItem('uf_al');localStorage.removeItem('uf_ag');location.reload();
+    localStorage.removeItem('uf_al');
+    localStorage.removeItem('uf_ag');
+    localStorage.removeItem('uf_bienvenida');
+    localStorage.removeItem('uf_co');
+    location.reload();
   });
 
   var btnVolver=document.getElementById('btn-volver-cap');
