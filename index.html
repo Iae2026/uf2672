@@ -928,7 +928,12 @@ window.addEventListener('DOMContentLoaded',function(){
 
   var btnVolver=document.getElementById('btn-volver-cap');
   if(btnVolver)btnVolver.addEventListener('click',function(){
-    window.speechSynthesis&&window.speechSynthesis.cancel();mostrarInicio();
+    window.speechSynthesis&&window.speechSynthesis.cancel();
+    if(getParamCap()){
+      window.top.location.href='https://campus.iaeformacion.com/course/view.php?id='+COURSE_ID;
+    }else{
+      mostrarInicio();
+    }
   });
 
   var inpAl=document.getElementById('inp-al'),inpAg=document.getElementById('inp-ag');
@@ -939,7 +944,6 @@ window.addEventListener('DOMContentLoaded',function(){
 
   var paramCap=getParamCap();
   if(localStorage.getItem('uf_al')&&localStorage.getItem('uf_ag')){
-    // Ya tiene nombre — ir directamente
     cargarCurso(function(){
       if(paramCap){
         var cap=CURSO.caps.find(function(c){return c.seccion===paramCap;});
@@ -949,14 +953,15 @@ window.addEventListener('DOMContentLoaded',function(){
       }
     });
   } else if(paramCap){
-    // Tiene parametro cap pero no tiene nombre — rellenar con valores por defecto
-    // para que no se quede bloqueado en el formulario
-    var inpAlEl=document.getElementById('inp-al');
-    var inpAgEl=document.getElementById('inp-ag');
-    if(inpAlEl)inpAlEl.placeholder='Escribe tu nombre para continuar...';
-    if(inpAgEl)inpAgEl.placeholder='Nombre de tu agente (ej: Delta, Rex...)';
-    // Pre-rellenar agente con valor por defecto si viene de otro iframe
-    if(inpAgEl&&!inpAgEl.value)inpAgEl.value='Agente';
+    // Está en un iframe de capítulo pero no tiene nombre — mostrar mensaje
+    ir('p-inicio');
+    var msg=document.getElementById('msg-inicio');
+    if(msg)msg.innerHTML='<strong style="color:#c9a84c;">Para acceder a este capitulo primero debes registrarte.</strong><br>Ve a la seccion principal del curso e introduce tu nombre y el nombre de tu agente.';
+    var lt=document.getElementById('lista-caps');if(lt)lt.innerHTML='';
+    var bc=document.getElementById('btn-cambiar');if(bc)bc.style.display='none';
+    iniciarRotacion('vid-inicio','idle','pregunta',20000);
+  } else {
+    // Iframe general sin nombre — mostrar pantalla de nombre
   }
 
   document.addEventListener('click',resetInactivo);
