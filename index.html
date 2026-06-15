@@ -476,6 +476,8 @@ function cargarCurso(cb){
     .then(function(r){return r.json();})
     .then(function(sections){
       if(!Array.isArray(sections)){if(cb)cb();return;}
+      console.log('Secciones recibidas:', sections.length);
+      sections.forEach(function(s){console.log('sec',s.section,'component:',s.component,'visible:',s.visible,'nombre:',s.name);});
       CURSO.caps=[];
       sections.forEach(function(sec){
         if(sec.section===0)return; // seccion general
