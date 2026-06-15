@@ -971,11 +971,15 @@ window.addEventListener('DOMContentLoaded',function(){
   // Sincronizar progreso entre iframes cuando cambia localStorage
   window.addEventListener('storage',function(e){
     if(e.key==='uf_co'){
-      // Otro iframe actualizó el progreso — refrescar UI
       if(pantActual==='p-inicio'){
         var pf=document.getElementById('pf-inicio'),pp=document.getElementById('pp-inicio');
         var pct=pctTotal();if(pf)pf.style.width=pct+'%';if(pp)pp.textContent=pct;
-        renderCaps();
+        // Si el curso ya está cargado actualizar directamente, si no cargarlo primero
+        if(CURSO.cargado){
+          renderCaps();
+        }else{
+          cargarCurso(function(){renderCaps();});
+        }
       }
       if(pantActual==='p-cap'&&capActual){
         var capId='cap_'+capActual.seccion;
