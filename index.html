@@ -911,15 +911,20 @@ window.addEventListener('DOMContentLoaded',function(){
   });
 
   var btnCambiar=document.getElementById('btn-cambiar');
-  if(btnCambiar)btnCambiar.addEventListener('click',function(){
-    window.speechSynthesis&&window.speechSynthesis.cancel();
-    localStorage.removeItem('uf_al');
-    localStorage.removeItem('uf_ag');
-    localStorage.removeItem('uf_bienvenida');
-    // Volver a pantalla nombre sin recargar
-    pantActual='p-inicio';
-    ir('p-nombre');
-  });
+  if(btnCambiar){
+    if(getParamCap()){
+      btnCambiar.style.display='none';
+    }else{
+      btnCambiar.addEventListener('click',function(){
+        window.speechSynthesis&&window.speechSynthesis.cancel();
+        localStorage.removeItem('uf_al');
+        localStorage.removeItem('uf_ag');
+        localStorage.removeItem('uf_bienvenida');
+        pantActual='p-inicio';
+        ir('p-nombre');
+      });
+    }
+  }
 
   var btnVolver=document.getElementById('btn-volver-cap');
   if(btnVolver)btnVolver.addEventListener('click',function(){
