@@ -478,10 +478,10 @@ function cargarCurso(cb){
       if(!Array.isArray(sections)){if(cb)cb();return;}
       CURSO.caps=[];
       sections.forEach(function(sec){
-        // Solo secciones visibles con nombre que contenga "Capitulo" o sean secciones 1-N
         if(sec.section===0)return; // seccion general
         if(!sec.visible)return;
-        if(sec.component)return; // son subsecciones, no capitulos principales
+        // Solo excluir subsecciones que pertenecen a un modulo padre
+        if(sec.component==='mod_subsection')return;
 
         var modulos=[];
         if(sec.modules){
