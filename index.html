@@ -889,6 +889,11 @@ window.addEventListener('DOMContentLoaded',function(){
     if(!b){if(age)age.style.borderColor='#cc4444';return;}
     localStorage.setItem('uf_al',a);localStorage.setItem('uf_ag',b);
     setChips();
+    var esPrimera=!localStorage.getItem('uf_bienvenida');
+    if(esPrimera){
+      localStorage.setItem('uf_bienvenida','1');
+      speak(r(FRASES_SALUDO)(a,b),'voz-inicio');
+    }
     var paramCap=getParamCap();
     cargarCurso(function(){
       if(paramCap){
@@ -898,11 +903,6 @@ window.addEventListener('DOMContentLoaded',function(){
         mostrarInicio();
       }
     });
-    // Saludo solo la primera vez
-    if(!localStorage.getItem('uf_bienvenida')){
-      localStorage.setItem('uf_bienvenida','1');
-      setTimeout(function(){speak(r(FRASES_SALUDO)(a,b),'voz-inicio');},600);
-    }
   });
 
   var btnCambiar=document.getElementById('btn-cambiar');
@@ -911,7 +911,9 @@ window.addEventListener('DOMContentLoaded',function(){
     localStorage.removeItem('uf_al');
     localStorage.removeItem('uf_ag');
     localStorage.removeItem('uf_bienvenida');
-    location.reload();
+    // Volver a pantalla nombre sin recargar
+    pantActual='p-inicio';
+    ir('p-nombre');
   });
 
   var btnVolver=document.getElementById('btn-volver-cap');
