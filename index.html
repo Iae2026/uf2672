@@ -641,7 +641,7 @@ function irCap(cap){
     var frase=r(bienvenidas);
     animPuntual('vid-cap','senalar','hablando',5);
     speak(frase,'voz-cap',function(){
-      setTimeout(function(){mostrarPregunta(cap.seccion);},1000);
+      setTimeout(function(){mostrarPregunta(cap.seccion);},3000);
     });
     btnEsc.style.opacity='0.5';btnEsc.textContent='Reproduciendo...';
     setTimeout(function(){btnEsc.style.opacity='1';btnEsc.textContent='Escuchar presentacion del capitulo';},8000);
