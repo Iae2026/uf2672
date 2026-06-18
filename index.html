@@ -274,9 +274,21 @@ function iniciarRotacion(vidId,grupo,primerAnim,base){
   if(rotTimers[vidId])clearTimeout(rotTimers[vidId]);
   rotIndex[vidId]=0;capaActiva[vidId]='a';
   var lista=GRUPOS[grupo]||GRUPOS.idle;
+  var primera=primerAnim||lista[0];
   var vA=document.getElementById(vidId+'-a');
-  if(vA){vA.src=ANIMS[primerAnim||lista[0]].w;vA.style.opacity='1';vA.playbackRate=0.5;vA.load();vA.play().catch(function(){});}
-  var vB=document.getElementById(vidId+'-b');if(vB){vB.style.opacity='0';vB.src='';}
+  if(vA){
+    vA.src=ANIMS[primera]?ANIMS[primera].w:ANIMS.idle.w;
+    vA.style.opacity='1';
+    vA.playbackRate=0.5;
+    vA.loop=true;
+    vA.load();
+    vA.play().catch(function(){
+      // Si falla, intentar con idle
+      vA.src=ANIMS.idle.w;vA.load();vA.play().catch(function(){});
+    });
+  }
+  var vB=document.getElementById(vidId+'-b');
+  if(vB){vB.style.opacity='0';vB.src=ANIMS.idle.w;vB.load();}
   var ms=base||18000;
   function sig(){
     rotIndex[vidId]=(rotIndex[vidId]+1)%lista.length;
@@ -305,11 +317,15 @@ function animPuntual(vidId,animKey,grupo,dur){
     vB.style.opacity='1';capaActiva[vidId]=sig;
     vB.onended=function(){
       vB.onended=null;vB.loop=true;
-      iniciarRotacion(vidId,grupo,null,18000);
+      iniciarRotacion(vidId,grupo||'idle',null,18000);
     };
+    var fallbackMs=((dur||anim.d||4)*2000)+1000;
     setTimeout(function(){
-      if(vB.onended){vB.onended=null;vB.loop=true;iniciarRotacion(vidId,grupo,null,18000);}
-    },((dur||anim.d||4)*2000)+1000);
+      if(vB.onended){
+        vB.onended=null;vB.loop=true;
+        iniciarRotacion(vidId,grupo||'idle',null,18000);
+      }
+    },fallbackMs);
   }
   vB.oncanplay=function(){vB.oncanplay=null;mostrar();};
   setTimeout(function(){if(!listo)mostrar();},1500);
@@ -902,8 +918,12 @@ function abrirSubseccion(mod,cap){
       };
       if(btns)btns.appendChild(bComp);
 
-      // Boton ver todo (solo uno)
-      var bTodo=document.createElement('a');bTodo.className='uf-btn-siguiente';
+      // Boton ver todo (solo uno — eliminar previo si existe)
+      var prevTodo=document.getElementById('btn-todo-tema');
+      if(prevTodo)prevTodo.remove();
+      var bTodo=document.createElement('a');
+      bTodo.id='btn-todo-tema';
+      bTodo.className='uf-btn-siguiente';
       bTodo.style.display='block';bTodo.style.marginBottom='8px';bTodo.style.marginTop='8px';
       bTodo.textContent='Ver todo el tema';bTodo.href=secUrl;bTodo.target='_top';
       if(btns)btns.after(bTodo);
