@@ -157,8 +157,8 @@ video{width:100%;display:block;object-fit:cover;object-position:top center;}
         <div class="uf-panel-desc" id="modulo-desc"></div>
         <div class="uf-btns" id="modulo-btns"></div>
         <div id="modulo-acts"></div>
-        <button class="uf-btn-siguiente" id="btn-sig-cap">Siguiente capitulo</button>
       </div>
+      <button class="uf-btn-siguiente" id="btn-sig-cap" style="display:none;margin-top:10px;">Siguiente capitulo</button>
     </div>
   </div>
 </div>
@@ -664,9 +664,67 @@ function irCap(cap){
     var sig=document.getElementById('btn-sig-cap');if(sig)sig.style.display='none';
   }
 
-  // Boton completar
+  // Boton completar — siempre visible independiente de subsecciones
   var bcomp=document.getElementById('btn-comp-cap-dyn');
   if(bcomp)bcomp.remove();
+  var bCompGlobal=document.createElement('button');
+  bCompGlobal.className='uf-btn-verde';bCompGlobal.id='btn-comp-cap-dyn';
+  bCompGlobal.style.cssText='width:100%;padding:10px;margin-top:10px;';
+  var capId='cap_'+cap.seccion;
+  if(isC(capId)){
+    bCompGlobal.textContent='Completado';bCompGlobal.style.opacity='0.5';bCompGlobal.style.cursor='default';
+  }else{
+    bCompGlobal.textContent='Marcar capitulo como completado';
+  }
+  bCompGlobal.onclick=function(){
+    if(isC(capId))return;
+    mC(capId);
+    bCompGlobal.textContent='Completado';bCompGlobal.style.opacity='0.5';bCompGlobal.style.cursor='default';
+    var msg=document.getElementById('msg-cap');
+    if(msg)msg.innerHTML='Has completado este capitulo. Pulsa Siguiente para continuar.';
+    animPuntual('vid-cap','perfecto','hablando',4);lanzarConfeti();
+    var sig=document.getElementById('btn-sig-cap');
+    if(sig){
+      sig.style.display='block';
+      var co2=gCo();
+      var sigCap2=CURSO.caps.find(function(c){return co2.indexOf('cap_'+c.seccion)===-1&&c.seccion!==cap.seccion;});
+      sig.textContent=sigCap2?'Siguiente: '+sigCap2.nombre:'Volver al inicio';
+      sig.onclick=function(){
+        window.speechSynthesis&&window.speechSynthesis.cancel();
+        if(sigCap2){
+          animPuntual('vid-cap','walkie','hablando',2);
+          setTimeout(function(){
+            if(getParamCap()){
+              window.top.location.href=sigCap2.url_todo;
+            }else{
+              irCap(sigCap2);
+            }
+          },800);
+        }else{
+          if(getParamCap()){
+            window.top.location.href='https://campus.iaeformacion.com/course/view.php?id='+COURSE_ID;
+          }else{
+            mostrarInicio();
+          }
+        }
+      };
+    }
+    var pf=document.getElementById('pf-cap');if(pf)pf.style.width='100%';
+    var pp=document.getElementById('pp-cap');if(pp)pp.textContent='Completado';
+    setTimeout(function(){speak(r(FRASES_COMPLETAR)(gAl(),cap.nombre),'voz-cap');},300);
+    setTimeout(function(){
+      var pf2=document.getElementById('pf-inicio'),pp2=document.getElementById('pp-inicio');
+      var pct=pctTotal();if(pf2)pf2.style.width=pct+'%';if(pp2)pp2.textContent=pct;
+    },500);
+  };
+  var listaModulos=document.getElementById('lista-modulos');
+  if(listaModulos&&listaModulos.parentNode){
+    listaModulos.parentNode.insertBefore(bCompGlobal,listaModulos.nextSibling);
+  }
+
+  // Boton completar del renderModulos ya no necesario — lo eliminamos
+  var bcomp2=document.getElementById('btn-comp-cap-dyn2');
+  if(bcomp2)bcomp2.remove();
 
   var sigBtn=document.getElementById('btn-sig-cap');
   if(sigBtn){
