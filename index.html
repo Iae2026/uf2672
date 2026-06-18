@@ -668,29 +668,33 @@ function irCap(cap){
   var bcomp=document.getElementById('btn-comp-cap-dyn');
   if(bcomp)bcomp.remove();
 
-  // Boton siguiente con transición directa al siguiente capitulo
   var sigBtn=document.getElementById('btn-sig-cap');
   if(sigBtn){
     sigBtn.onclick=null;
     sigBtn.onclick=function(){
       window.speechSynthesis&&window.speechSynthesis.cancel();
-      // Buscar el siguiente capitulo
       var co=gCo();
       var sigCap=CURSO.caps.find(function(c){
         return co.indexOf('cap_'+c.seccion)===-1 && c.seccion!==cap.seccion;
       });
       if(sigCap){
-        // Transición directa al siguiente capitulo
-        animPuntual('vid-cap','walkie','hablando',2);
-        setTimeout(function(){
-          irCap(sigCap);
+        if(getParamCap()){
+          // Estamos en iframe de capitulo — navegar a Moodle
+          animPuntual('vid-cap','walkie','hablando',2);
           setTimeout(function(){
-            speak('Bienvenido a '+sigCap.nombre+'. Vamos a por ello.','voz-cap');
-          },600);
-        },800);
+            window.top.location.href=sigCap.url_todo;
+          },800);
+        }else{
+          // Estamos en iframe general — abrir directamente
+          animPuntual('vid-cap','walkie','hablando',2);
+          setTimeout(function(){irCap(sigCap);},800);
+        }
       }else{
-        // No hay mas capitulos, volver al inicio
-        mostrarInicio();
+        if(getParamCap()){
+          window.top.location.href='https://campus.iaeformacion.com/course/view.php?id='+COURSE_ID;
+        }else{
+          mostrarInicio();
+        }
       }
     };
   }
@@ -754,10 +758,28 @@ function renderModulos(cap,tieneSubsecciones){
       var sig=document.getElementById('btn-sig-cap');
       if(sig){
         sig.style.display='block';
-        // Buscar nombre del siguiente capitulo para el boton
         var co2=gCo();
         var sigCap2=CURSO.caps.find(function(c){return co2.indexOf('cap_'+c.seccion)===-1&&c.seccion!==cap.seccion;});
         sig.textContent=sigCap2?'Siguiente: '+sigCap2.nombre:'Volver al inicio';
+        sig.onclick=function(){
+          window.speechSynthesis&&window.speechSynthesis.cancel();
+          if(sigCap2){
+            animPuntual('vid-cap','walkie','hablando',2);
+            setTimeout(function(){
+              if(getParamCap()){
+                window.top.location.href=sigCap2.url_todo;
+              }else{
+                irCap(sigCap2);
+              }
+            },800);
+          }else{
+            if(getParamCap()){
+              window.top.location.href='https://campus.iaeformacion.com/course/view.php?id='+COURSE_ID;
+            }else{
+              mostrarInicio();
+            }
+          }
+        };
       }
       var pf=document.getElementById('pf-cap');if(pf)pf.style.width='100%';
       var pp=document.getElementById('pp-cap');if(pp)pp.textContent='Completado';
